@@ -87,7 +87,7 @@ func generateFile(in Struct, to Struct) error {
 	// заполняем данные для шаблона файла данными структурами
 	toPkg := fmt.Sprintf(`pkg1 "%s"`, to.Path)
 	imp := fmt.Sprintf(`fmt.Fprintln(out,"	pkg1 \"%s\"")`, to.Path)
-	gen := fmt.Sprintf(`generate(out,%s{},pkg1.%s{})`,in.Name, to.Name)
+	gen := fmt.Sprintf(`generate(out,%s{},pkg1.%s{})`, in.Name, to.Name)
 
 	fmt.Fprintln(f, fmt.Sprintf(k, in.Path, toPkg, in.Path, imp, gen))
 
@@ -108,7 +108,7 @@ func generateFile(in Struct, to Struct) error {
 	}()
 
 	// запускаем генерацию конечного кода
-	execArgs := []string{"test", "-v","-run", "TestK"}
+	execArgs := []string{"test", "-v", "-run", "TestK"}
 
 	cmd := exec.Command("go", execArgs...)
 	cmd.Stdout = os.Stdout

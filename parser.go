@@ -37,13 +37,23 @@ func (v *visitor) Visit(n ast.Node) (w ast.Visitor) {
 	switch n := n.(type) {
 	case *ast.Package:
 		return v
+
 	case *ast.File:
 		// тут запоминаем путь до пакета в котором структура, которую парсим
 		v.PkgName = n.Name.String()
 		v.tempPkgName = filepath.Dir(n.Name.String())
 		return v
-	case *ast.TypeSpec:
 
+	case *ast.GenDecl:
+		for _, nc := range n.Specs {
+			switch nct := nc.(type) {
+			case *ast.TypeSpec:
+				nct.Doc = n.Doc
+			}
+		}
+		return v
+
+	case *ast.TypeSpec:
 		structType, ok := n.Type.(*ast.StructType)
 		if !ok {
 			// если не структура ищем дальше
@@ -55,10 +65,11 @@ func (v *visitor) Visit(n ast.Node) (w ast.Visitor) {
 
 		//проверяем коммент на маркер, если он найдет, то запоминаем пару
 		if st := checkConnect(n.Doc.Text()); st != nil {
-			v.Connections[Struct{
+			k := Struct{
 				Path: v.tmpFile,
 				Name: strings.TrimSpace(n.Name.String()),
-			}] = *st
+			}
+			v.Connections[k] = *st
 		}
 
 		return v
