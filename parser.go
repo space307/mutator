@@ -16,6 +16,11 @@ type Struct struct {
 	Name string
 }
 
+type StructPair struct {
+	From Struct
+	To   Struct
+}
+
 type Parser struct {
 	PkgPath     string
 	PkgName     string
@@ -23,7 +28,7 @@ type Parser struct {
 	tmpFile     string
 
 	All         map[string]*ast.StructType
-	Connections map[Struct]Struct
+	Connections map[string][]StructPair
 }
 
 type visitor struct {
@@ -33,7 +38,7 @@ type visitor struct {
 	name        string
 }
 
-func (v *visitor) Visit(n ast.Node) (w ast.Visitor) {
+func (v *visitor) Visit(n ast.Node) ast.Visitor {
 	switch n := n.(type) {
 	case *ast.Package:
 		return v
@@ -69,7 +74,7 @@ func (v *visitor) Visit(n ast.Node) (w ast.Visitor) {
 				Path: v.tmpFile,
 				Name: strings.TrimSpace(n.Name.String()),
 			}
-			v.Connections[k] = *st
+			v.Connections[v.tmpFile] = append(v.Connections[v.tmpFile], StructPair{From: k, To: *st})
 		}
 
 		return v
