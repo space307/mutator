@@ -108,9 +108,11 @@ func generateFile(dir string, st []StructPair) error {
 		gen += fmt.Sprintf("generate(out,%s{},%s.%s{})\n", item.From.Name, pkgName, item.To.Name)
 	}
 
-	fmt.Fprintln(f, fmt.Sprintf(k, dir, toPkg, dir, imp, gen))
+	if _, err = fmt.Fprintln(f, fmt.Sprintf(k, dir, toPkg, dir, imp, gen)); err != nil {
+		return fmt.Errorf("write temp file: %w", err)
+	}
 
-	if err := f.Close(); err != nil {
+	if err = f.Close(); err != nil {
 		return fmt.Errorf("close temp file: %w", err)
 	}
 
@@ -123,7 +125,9 @@ func generateFile(dir string, st []StructPair) error {
 
 	defer func() {
 		// remove temp generator
-		_ = os.Remove(dest)
+		if er := os.Remove(dest); er != nil {
+			fmt.Printf("Error removing temporary file: %s", er)
+		}
 	}()
 
 	// запускаем генерацию конечного кода

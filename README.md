@@ -1,5 +1,10 @@
 # generator
 
+[![Release](https://img.shields.io/github/release/space307/mutator.svg)](https://github.com/space307/mutator/releases/latest)
+[![License](https://img.shields.io/github/license/space307/mutator.svg)](https://raw.githubusercontent.com/space307/mutator/master/LICENSE)
+[![Go Report Card](https://goreportcard.com/badge/github.com/space307/mutator)](https://goreportcard.com/report/github.com/space307/mutator)
+
+
 Генератор сканит все структуры в проекте и ищет структуры со специальным комментарием вида
 ` mutagento <struct package> <struct name>`
 
