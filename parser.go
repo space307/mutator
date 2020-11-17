@@ -11,16 +11,19 @@ import (
 
 const marker = "mutagento"
 
+//Struct definition of the found structure
 type Struct struct {
 	Path string
 	Name string
 }
 
+//StructPair pair of structures to definition the mutation
 type StructPair struct {
 	From Struct
 	To   Struct
 }
 
+//Parser definition of found packages
 type Parser struct {
 	PkgPath     string
 	PkgName     string
@@ -82,6 +85,7 @@ func (v *visitor) Visit(n ast.Node) ast.Visitor {
 	return nil
 }
 
+//Parse search for files and parse structures
 func (p *Parser) Parse(fname string) error {
 	err := filepath.Walk(fname, func(path string, info os.FileInfo, err error) error {
 		if !strings.HasSuffix(path, ".go") {
