@@ -46,9 +46,9 @@ func generate(out *bytes.Buffer, ex interface{}, in interface{}) {
 	k := reflect.TypeOf(in)
 
 	fmt.Fprintln(out,"")
-	fmt.Fprintf(out, "// MutateTo%%s return %%s filled from  pkg1.%%s\n", t.Name(), k.Name(), k.Name())
-	fmt.Fprintf(out, "func (t *%%s) MutateTo%%s()  pkg1.%%s {\n", t.Name(), k.Name(), k.Name())
-	fmt.Fprintf(out, "	return  pkg1.%%s{\n", k.Name())
+	fmt.Fprintf(out, "// MutateTo%%s return %%s filled from  %%s\n", t.Name(), k.Name(), k.String())
+	fmt.Fprintf(out, "func (t *%%s) MutateTo%%s()  %%s {\n", t.Name(), k.Name(), k.String())
+	fmt.Fprintf(out, "	return  %%s{\n", k.String())
 	for i :=0;i< t.NumField();i++ {
 		for j :=0;j< k.NumField();j++ {
 			if k.Field(j).Name == t.Field(i).Name && k.Field(j).Type == t.Field(i).Type {
@@ -63,7 +63,7 @@ func generate(out *bytes.Buffer, ex interface{}, in interface{}) {
 
 	fmt.Fprintln(out,"")
 	fmt.Fprintf(out, "// FillFrom%%s fill %%s from %%s values\n", t.Name(), k.Name(), k.Name())
-	fmt.Fprintf(out, "func (t *%%s) FillFrom%%s(k pkg1.%%s) {\n", t.Name(), k.Name(), k.Name())
+	fmt.Fprintf(out, "func (t *%%s) FillFrom%%s(k %%s) {\n", t.Name(), k.Name(), k.String())
 	for i :=0;i< t.NumField();i++ {
 		for j :=0;j< k.NumField();j++ {
 			if k.Field(j).Name == t.Field(i).Name && k.Field(j).Type == t.Field(i).Type {
@@ -77,29 +77,48 @@ func generate(out *bytes.Buffer, ex interface{}, in interface{}) {
 }
 `
 
-func generateFile(in Struct, to Struct) error {
-	f, err := ioutil.TempFile(in.Path, "temp_mutagen")
+func generateFile(dir string, st []StructPair) error {
+	f, err := ioutil.TempFile("./"+dir, "temp_mutagen")
 
 	if err != nil {
-		return err
+		return fmt.Errorf("generate temp file: %w", err)
+	}
+
+	var (
+		toPkg, imp, gen string
+		pkgNum          int
+	)
+
+	pack := make(map[string]string)
+	for _, item := range st {
+		if _, ok := pack[item.To.Path]; !ok {
+			pack[item.To.Path] = fmt.Sprintf("pkg%d", pkgNum)
+			pkgNum++
+		}
+	}
+
+	for p, n := range pack {
+		toPkg += fmt.Sprintf("%s \"%s\"\n", n, p)
+		imp += fmt.Sprintf("fmt.Fprintln(out,\"	\\\"%s\\\"\")\n", p)
 	}
 
 	// заполняем данные для шаблона файла данными структурами
-	toPkg := fmt.Sprintf(`pkg1 "%s"`, to.Path)
-	imp := fmt.Sprintf(`fmt.Fprintln(out,"	pkg1 \"%s\"")`, to.Path)
-	gen := fmt.Sprintf(`generate(out,%s{},pkg1.%s{})`, in.Name, to.Name)
+	for _, item := range st {
+		pkgName := pack[item.To.Path]
+		gen += fmt.Sprintf("generate(out,%s{},%s.%s{})\n", item.From.Name, pkgName, item.To.Name)
+	}
 
-	fmt.Fprintln(f, fmt.Sprintf(k, in.Path, toPkg, in.Path, imp, gen))
+	fmt.Fprintln(f, fmt.Sprintf(k, dir, toPkg, dir, imp, gen))
 
 	if err := f.Close(); err != nil {
-		return err
+		return fmt.Errorf("close temp file: %w", err)
 	}
 
 	src := f.Name()
 	dest := src + "_test.go"
 	err = os.Rename(src, dest)
 	if err != nil {
-		return err
+		return fmt.Errorf("rename temp file: %w", err)
 	}
 
 	defer func() {
@@ -108,14 +127,20 @@ func generateFile(in Struct, to Struct) error {
 	}()
 
 	// запускаем генерацию конечного кода
-	execArgs := []string{"test", "-v", "-run", "TestK"}
-
-	cmd := exec.Command("go", execArgs...)
+	cmd := exec.Command("go", "test", "-v", "-run", "TestK")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	cmd.Dir = in.Path
+	cmd.Dir = dir
 	if err = cmd.Run(); err != nil {
-		return err
+		return fmt.Errorf("run temp file: %w", err)
+	}
+
+	cmd = exec.Command("go", "fmt", "mutated.go")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Dir = dir
+	if err = cmd.Run(); err != nil {
+		return fmt.Errorf("run fmt for mutated.go: %w", err)
 	}
 
 	return nil
