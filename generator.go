@@ -46,7 +46,7 @@ func generate(out *bytes.Buffer, ex interface{}, in interface{}) {
 	k := reflect.TypeOf(in)
 
 	fmt.Fprintln(out,"")
-	fmt.Fprintf(out, "// MutateTo%%s return %%s filled from  %%s\n", t.Name(), k.Name(), k.String())
+	fmt.Fprintf(out, "// MutateTo%%s return %%s filled from %%s\n", t.Name(), k.Name(), k.String())
 	fmt.Fprintf(out, "func (t *%%s) MutateTo%%s()  %%s {\n", t.Name(), k.Name(), k.String())
 	fmt.Fprintf(out, "	return  %%s{\n", k.String())
 	for i :=0;i< t.NumField();i++ {
@@ -77,9 +77,13 @@ func generate(out *bytes.Buffer, ex interface{}, in interface{}) {
 }
 `
 
-func generateFile(dir string, st []StructPair) error {
-	f, err := ioutil.TempFile("./"+dir, "temp_mutagen")
+func generateFile(pkgName string, st []StructPair) error {
+	if len(st) == 0 {
+		return fmt.Errorf("no pairs given")
+	}
 
+	dir := st[0].From.Path
+	f, err := ioutil.TempFile(dir, "temp_mutagen")
 	if err != nil {
 		return fmt.Errorf("generate temp file: %w", err)
 	}
@@ -104,15 +108,17 @@ func generateFile(dir string, st []StructPair) error {
 
 	// заполняем данные для шаблона файла данными структурами
 	for _, item := range st {
-		pkgName := pack[item.To.Path]
-		gen += fmt.Sprintf("generate(out,%s{},%s.%s{})\n", item.From.Name, pkgName, item.To.Name)
+		name := pack[item.To.Path]
+		gen += fmt.Sprintf("generate(out,%s{},%s.%s{})\n", item.From.Name, name, item.To.Name)
 	}
 
-	if _, err = fmt.Fprintln(f, fmt.Sprintf(k, dir, toPkg, dir, imp, gen)); err != nil {
+	_, err = fmt.Fprintln(f, fmt.Sprintf(k, pkgName, toPkg, pkgName, imp, gen))
+	if err != nil {
 		return fmt.Errorf("write temp file: %w", err)
 	}
 
-	if err = f.Close(); err != nil {
+	err = f.Close()
+	if err != nil {
 		return fmt.Errorf("close temp file: %w", err)
 	}
 

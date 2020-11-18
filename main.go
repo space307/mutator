@@ -17,14 +17,14 @@ func main() {
 		Connections: make(map[string][]StructPair),
 	}
 	if err := p.Parse(dir); err != nil {
-		fmt.Printf("Error parsing: %s", err)
+		fmt.Printf("Error parsing: %s\n", err)
 	}
 
 	//Проходимся по всем парам и генерим файлы с кодом преобразования
-	for path, str := range p.Connections {
-		err := generateFile(path, str)
+	for pkgName, str := range p.Connections {
+		err := generateFile(pkgName, str)
 		if err != nil {
-			fmt.Printf("error: %s", err)
+			fmt.Printf("error: %s\n", err)
 			os.Exit(1)
 		}
 	}

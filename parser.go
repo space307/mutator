@@ -25,7 +25,6 @@ type StructPair struct {
 
 //Parser definition of found packages
 type Parser struct {
-	PkgPath     string
 	PkgName     string
 	StructNames []Struct
 	tmpFile     string
@@ -36,9 +35,6 @@ type Parser struct {
 
 type visitor struct {
 	*Parser
-
-	tempPkgName string
-	name        string
 }
 
 func (v *visitor) Visit(n ast.Node) ast.Visitor {
@@ -49,7 +45,6 @@ func (v *visitor) Visit(n ast.Node) ast.Visitor {
 	case *ast.File:
 		// тут запоминаем путь до пакета в котором структура, которую парсим
 		v.PkgName = n.Name.String()
-		v.tempPkgName = filepath.Dir(n.Name.String())
 		return v
 
 	case *ast.GenDecl:
@@ -77,7 +72,7 @@ func (v *visitor) Visit(n ast.Node) ast.Visitor {
 				Path: v.tmpFile,
 				Name: strings.TrimSpace(n.Name.String()),
 			}
-			v.Connections[v.tmpFile] = append(v.Connections[v.tmpFile], StructPair{From: k, To: *st})
+			v.Connections[v.PkgName] = append(v.Connections[v.PkgName], StructPair{From: k, To: *st})
 		}
 
 		return v
